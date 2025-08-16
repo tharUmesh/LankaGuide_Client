@@ -1,16 +1,31 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Bell, ChevronDown, Globe, LogIn, LogOut, User } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import {
+  Bell,
+  ChevronDown,
+  Globe,
+  LogIn,
+  LogOut,
+  User,
+  Menu,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { DEPARTMENTS } from "../utils/mockData";
 import { useApp } from "../utils/appContext";
 
-const NotificationsBell = () => {
-  const { notifications, setNotifications } = useApp();
+const NotificationsBell = ({ isAdmin }) => {
+  const {
+    notifications,
+    setNotifications,
+    adminNotifications,
+    setAdminNotifications,
+  } = useApp();
   const [open, setOpen] = useState(false);
-  const unread = notifications.filter((n) => !n.read).length;
-  const markAll = () =>
-    setNotifications((ns) => ns.map((n) => ({ ...n, read: true })));
+  const items = isAdmin ? adminNotifications : notifications;
+  const setItems = isAdmin ? setAdminNotifications : setNotifications;
+  const unread = items.filter((n) => !n.read).length;
+  const markAll = () => setItems((ns) => ns.map((n) => ({ ...n, read: true })));
   return (
     <div className="relative">
       <button
@@ -39,12 +54,12 @@ const NotificationsBell = () => {
               </button>
             </div>
             <div className="max-h-64 overflow-auto space-y-1">
-              {notifications.length === 0 ? (
+              {items.length === 0 ? (
                 <div className="p-3 text-sm text-gray-500">
                   No notifications yet.
                 </div>
               ) : (
-                notifications.map((n) => (
+                items.map((n) => (
                   <div
                     key={n.id}
                     className="p-2 rounded-xl hover:bg-gray-50 text-sm flex gap-2"
@@ -142,6 +157,9 @@ const ProfileMenu = () => {
 
 export default function Navbar() {
   const [depOpen, setDepOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith("/admin");
   return (
     <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
@@ -155,52 +173,148 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-6">
-          <div className="relative">
-            <button
-              onClick={() => setDepOpen((v) => !v)}
-              className="inline-flex items-center gap-1"
-            >
-              Departments <ChevronDown className="w-4 h-4" />
-            </button>
-            <AnimatePresence>
-              {depOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  className="absolute mt-2 w-[28rem] bg-white border rounded-2xl shadow-xl p-3 grid grid-cols-1 z-20"
+          {isAdmin ? (
+            <>
+              <Link to="/admin" className="hover:opacity-70">
+                Dashboard
+              </Link>
+              <Link to="/admin/analytics" className="hover:opacity-70">
+                Analytics
+              </Link>
+              <Link to="/admin/feedbacks" className="hover:opacity-70">
+                Feedbacks
+              </Link>
+            </>
+          ) : (
+            <>
+              <div className="relative">
+                <button
+                  onClick={() => setDepOpen((v) => !v)}
+                  className="inline-flex items-center gap-1"
                 >
-                  {DEPARTMENTS.map((d) => (
-                    <Link
-                      key={d.id}
-                      to={`/departments/${d.id}`}
-                      onClick={() => setDepOpen(false)}
-                      className="px-3 py-2 rounded-xl hover:bg-gray-50"
+                  Departments <ChevronDown className="w-4 h-4" />
+                </button>
+                <AnimatePresence>
+                  {depOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      className="absolute mt-2 w-[28rem] bg-white border rounded-2xl shadow-xl p-3 grid grid-cols-1 z-20"
                     >
-                      <div className="font-medium">{d.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {d.description}
-                      </div>
-                    </Link>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                      {DEPARTMENTS.map((d) => (
+                        <Link
+                          key={d.id}
+                          to={`/departments/${d.id}`}
+                          onClick={() => setDepOpen(false)}
+                          className="px-3 py-2 rounded-xl hover:bg-gray-50"
+                        >
+                          <div className="font-medium">{d.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {d.description}
+                          </div>
+                        </Link>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-          <Link to="/contact" className="hover:opacity-70">
-            Contact Us
-          </Link>
-          <Link to="/payments" className="hover:opacity-70">
-            Payments
-          </Link>
+              {/* Contact Us removed on admin pages per request */}
+              <Link to="/contact" className="hover:opacity-70">
+                Contact Us
+              </Link>
+              <Link to="/payments" className="hover:opacity-70">
+                Payments
+              </Link>
+            </>
+          )}
         </div>
-
         <div className="ml-auto flex items-center gap-2">
-          <NotificationsBell />
+          <NotificationsBell isAdmin={isAdmin} />
           <ProfileMenu />
+          <button
+            onClick={() => setMobileOpen((s) => !s)}
+            className="md:hidden p-2 rounded-md hover:bg-gray-100 ml-1"
+            aria-label="Menu"
+          >
+            {mobileOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="md:hidden bg-white border-t"
+          >
+            <div className="px-4 py-4">
+              {isAdmin ? (
+                <div className="space-y-2">
+                  <Link
+                    onClick={() => setMobileOpen(false)}
+                    to="/admin"
+                    className="block px-3 py-2 rounded hover:bg-gray-50"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    onClick={() => setMobileOpen(false)}
+                    to="/admin/analytics"
+                    className="block px-3 py-2 rounded hover:bg-gray-50"
+                  >
+                    Analytics
+                  </Link>
+                  <Link
+                    onClick={() => setMobileOpen(false)}
+                    to="/admin/feedbacks"
+                    className="block px-3 py-2 rounded hover:bg-gray-50"
+                  >
+                    Feedbacks
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="font-medium">Departments</div>
+                  <div className="space-y-1 mt-1">
+                    {DEPARTMENTS.map((d) => (
+                      <Link
+                        key={d.id}
+                        onClick={() => setMobileOpen(false)}
+                        to={`/departments/${d.id}`}
+                        className="block px-3 py-2 rounded hover:bg-gray-50"
+                      >
+                        {d.name}
+                      </Link>
+                    ))}
+                  </div>
+                  <Link
+                    onClick={() => setMobileOpen(false)}
+                    to="/contact"
+                    className="block px-3 py-2 rounded hover:bg-gray-50"
+                  >
+                    Contact Us
+                  </Link>
+                  <Link
+                    onClick={() => setMobileOpen(false)}
+                    to="/payments"
+                    className="block px-3 py-2 rounded hover:bg-gray-50"
+                  >
+                    Payments
+                  </Link>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
